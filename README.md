@@ -17,7 +17,9 @@ Currently supported languages:
 - Java * 
 - C#  
 
----
+
+
+
 
 # Features
 
@@ -31,7 +33,9 @@ Currently supported languages:
 - Code hashing
 - Extensible architecture
 
----
+
+
+
 
 # Dataset Structure
 
@@ -96,6 +100,25 @@ src/
 │
 └── output/
 ```
-## Running 
-From the root folder: 
-```python -m src.main /repos/django --output output/projects.jsonl```
+# Running 
+
+## Installation Clone the repository and install dependencies: 
+* ```pip install -r requirements.txt ``` 
+* Put the project repo folder inside ```repos```
+
+
+## CLI Arguments 
+- `project_path`: Path to the repository to analyze 
+- `--output`: Path to the output JSONL file (default: `output/projects.jsonl`) 
+
+## Running From the project root: 
+
+```python -m src.main /repos/django --output output/projects.jsonl ``` 
+
+ ## Language Detection 
+ The pipeline automatically detects the dominant programming language in a repository based on file counts. Supported languages: - Python (`.py`) - Java (`.java`) - C# (`.cs`) 
+
+ ## Ignored Directories The following directories are excluded from traversal: 
+ - `.git` - `venv` - `__pycache__` - `node_modules` - `bin` - `obj` - `target` 
+
+ 

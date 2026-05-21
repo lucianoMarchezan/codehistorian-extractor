@@ -31,7 +31,7 @@ class ExtractionPipeline:
         parser = self._get_parser(language)
 
         project = ProjectEntry(
-            entry_id=stable_id(project_root.name),
+            entry_id=project_root.name,
 
             project=ProjectMetadata(
                 name=project_root.name,
