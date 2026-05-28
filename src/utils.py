@@ -1,6 +1,5 @@
 from pathlib import Path
-import hashlib
-import uuid
+import hashlib, json, uuid
 
 
 SUPPORTED_EXTENSIONS = {
@@ -54,6 +53,29 @@ def sha256(content: str) -> str:
 
 def stable_id(value: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, value))
+
+
+
+def load_existing_entry_ids(jsonl_path):
+    jsonl_path = Path(jsonl_path) 
+    if not jsonl_path.exists():
+        return set()
+
+    ids = set()
+
+    with jsonl_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                obj = json.loads(line)
+                ids.add(obj.get("entry_id"))
+            except json.JSONDecodeError:
+                continue
+
+    return ids
 
 def print_banner():
 

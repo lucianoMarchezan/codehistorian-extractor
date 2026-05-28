@@ -12,7 +12,7 @@ from src.parsers.python_parser import PythonParser
 from src.utils import (
     detect_language,
     iter_source_files,
-    stable_id
+    load_existing_entry_ids
 )
 
 
@@ -25,9 +25,26 @@ class ExtractionPipeline:
     def run(self, project_root: str):
 
         project_root = Path(project_root)
+        
 
         language = detect_language(project_root)
+        print(f"Detected language: {language}")
 
+        existing_ids = load_existing_entry_ids(self.serializer.output_file)
+
+        project_id = project_root.name
+
+        # SKIP if already processed
+        if project_id in existing_ids:
+            print(f"Skipping {project_id} (already extracted)")
+            return
+
+        files = list(iter_source_files(project_root, language))
+
+        print(f"Discovered {len(files)} source files")
+
+        for f in files[:10]:
+            print(f)
         parser = self._get_parser(language)
 
         project = ProjectEntry(
@@ -42,17 +59,24 @@ class ExtractionPipeline:
 
         for file_path in iter_source_files(project_root, language):
 
+            print(f"Parsing: {file_path}")
+
             try:
                 source_file = parser.extract(
                     file_path,
                     project_root
                 )
 
+                print(f"Functions found: {len(source_file.functions)}")
+
                 if source_file.functions:
+                    print("Appending source file")
                     project.sources.append(source_file)
 
             except Exception as e:
                 print(f"Failed parsing {file_path}: {e}")
+
+        print(f"Total source files stored: {len(project.sources)}")
 
         self.serializer.write(project)
 

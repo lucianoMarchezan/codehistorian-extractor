@@ -113,7 +113,7 @@ src/
 
 ## Running From the project root: 
 
-```python -m src.main /repos/django --output output/projects.jsonl ``` 
+```python -m src.main tests/calc-test --output output/projects.jsonl ``` -- this is a toy example to test the extractor
 
  ## Language Detection 
  The pipeline automatically detects the dominant programming language in a repository based on file counts. Supported languages: - Python (`.py`) - Java (`.java`) - C# (`.cs`) 
