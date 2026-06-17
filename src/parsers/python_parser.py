@@ -1,7 +1,7 @@
 import ast
 from pathlib import Path
 
-from src.models import (
+from src.utils.models import (
     SourceFile,
     Function,
     Parameter,
@@ -10,7 +10,7 @@ from src.models import (
     Hashes
 )
 
-from src.utils import stable_id, sha256
+from src.utils.helper_functions import stable_id, sha256
 
 
 class PythonParser:

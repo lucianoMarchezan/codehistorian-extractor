@@ -19,8 +19,7 @@ class CodeBlock:
 @dataclass
 class Metrics: # We will add more metrics as needed
     loc: int
-    token_count: int
-    cyclomatic_complexity: Optional[int] = None
+    token_count: int 
 
 
 @dataclass

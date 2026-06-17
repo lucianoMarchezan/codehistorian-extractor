@@ -1,76 +1,51 @@
-# Function Extractor Pipeline
+# Function Extractor & Clone Detection Pipeline
 
-A multi-language source code extraction pipeline for building standardized datasets of functions/methods from software repositories.
+A multi-language source code analysis pipeline for extracting functions from software repositories and building datasets for clone detection, semantic similarity analysis, and code representation learning.
 
-The pipeline recursively scans projects, extracts functions using AST-based parsing, and serializes the extracted data into a structured JSONL dataset suitable for:
+The system performs end-to-end processing:
 
-- clone detection
-- semantic similarity analysis
-- embedding generation
-- ML datasets
-- code search
-- repository mining
+1. Extracts functions from source code using AST-based parsers  
+2. Serializes structured project data into JSONL  
+3. Generates function-pair datasets per project  
+4. Evaluates clone similarity using SentenceTransformer models  
 
-Currently supported languages:
+--- 
+
+## Supported Languages
 
 - Python
-- Java * 
-- C#  
+- Java *
+- C#
+
+---
 
 
+## Dataset Structure (JSONL)
 
-
-
-# Features
-
-- Recursive project traversal
-- Multi-language support
-- AST-based extraction
-- Hierarchical dataset structure
-- JSONL serialization
-- Stable deterministic IDs
-- Function metadata extraction
-- Code hashing
-- Extensible architecture
-
-
-
-
-
-# Dataset Structure
-
-Each line in the JSONL output represents a single project.
-
-Structure:
+Each line corresponds to one project.
 
 ```json
 {
   "entry_id": "proj_000001",
-
   "project": {
     "name": "django",
     "language": "python",
     "repository_url": "https://github.com/django/django"
   },
-
   "sources": [
     {
       "source_id": "src_000001",
       "file_name": "request.py",
       "relative_path": "django/http/request.py",
       "package": "django.http",
-
       "functions": [
         {
           "function_id": "fn_000001",
           "name": "get_host",
           "qualified_name": "django.http.request.HttpRequest.get_host",
-
           "signature": "get_host(self)",
-
           "start_line": 120,
           "end_line": 148,
-
           "code": {
             "raw": "...",
             "normalized": "..."
@@ -82,43 +57,108 @@ Structure:
 }
 ```
 
+---
+
 ## Project Structure
+
 ```
 src/
 │
-├── main.py
-├── pipeline.py
-├── utils.py
-├── models.py
+├── main.py                      # Extraction pipeline entry point
+├── pipeline.py                 # Core extraction logic
+├── models.py                   # Data structures
+├── run_detection.py                   # Detection entry point
+│
+├── utils/
+│   ├── helper_functions.py
+│   ├── create_function_pairs.py
 │
 ├── parsers/
 │   ├── base.py
-│   └── python_parser.py
+│   ├── python_parser.py
 │
 ├── normalization/
 │   └── serializer.py
 │
-└── output/
+├── clone_detection/
+│   └── sentence_transformers_detector.py
+│
+output/
+results/
 ```
-# Running 
+---
 
-## Installation Clone the repository and install dependencies: 
-* ```pip install -r requirements.txt ``` 
-* Put the project repo folder inside ```repos```
+## Language Detection
 
+The pipeline automatically detects the dominant language in a repository using file counts.
 
-## CLI Arguments 
-- `project_path`: Path to the repository to analyze 
-- `--output`: Path to the output JSONL file (default: `output/projects.jsonl`) 
+Supported extensions:
 
-## Running From the project root: 
+- .py → Python  
+- .java → Java  
+- .cs → C#  
 
-```python -m src.main tests/calc-test --output output/projects.jsonl ``` -- this is a toy example to test the extractor
+--- 
 
- ## Language Detection 
- The pipeline automatically detects the dominant programming language in a repository based on file counts. Supported languages: - Python (`.py`) - Java (`.java`) - C# (`.cs`) 
+## Running the Pipeline
 
- ## Ignored Directories The following directories are excluded from traversal: 
- - `.git` - `venv` - `__pycache__` - `node_modules` - `bin` - `obj` - `target` 
+The extractor/pair creation is done via a single entry point (`src.main`) and supports three execution modes:
 
- 
+- `extract` → only function extraction (JSONL)
+- `pairs` → only pair generation (CSV)
+- `all` → run full pipeline (extract + pairs)
+
+---
+
+## Running Examples
+
+### 1. Full pipeline (recommended)
+
+Extract + generate pairs:
+
+```bash
+python -m src.main tests/calc-test --mode all
+```
+
+---
+
+### 2. Only extraction
+
+```bash
+python -m src.main tests/calc-test --mode extract
+```
+
+Output:
+- JSONL dataset in `--output`
+
+---
+
+### 3. Only pair generation
+
+```bash
+python -m src.main tests/calc-test --mode pairs
+```
+
+Input:
+- existing JSONL file (`--output`)
+
+Output:
+- function pairs CSV files
+
+---
+
+### 4. Clone Detection Evaluation
+
+This can be run after the pairs files are created
+
+Run embedding-based similarity analysis:
+
+```
+python run_detection.py --csv output/pairs/calc-test_python_function_pairs.csv
+```
+
+Multiple models:
+
+```
+python run_detection.py --csv output/pairs/calc-test_python_function_pairs.csv --models microsoft/codebert-base Salesforce/codet5-base
+```

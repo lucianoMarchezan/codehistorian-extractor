@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.models import (
+from src.utils.models import (
     ProjectEntry,
     ProjectMetadata
 )
@@ -9,7 +9,7 @@ from src.normalization.serializer import JSONLSerializer
 
 from src.parsers.python_parser import PythonParser
 
-from src.utils import (
+from src.utils.helper_functions import (
     detect_language,
     iter_source_files,
     load_existing_entry_ids
