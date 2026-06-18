@@ -2,6 +2,7 @@ import json
 import csv
 import itertools
 from pathlib import Path
+from src.config import MIN_LOC, MIN_TOKEN_COUNT
 
 
 def create_pairs_csv(jsonl_file, output_csv):
@@ -22,14 +23,16 @@ def create_pairs_csv(jsonl_file, output_csv):
 
             functions = _extract_functions_from_entry(entry)
 
+            # APPLY FILTERING HERE
+            functions = _filter_functions(functions)
+
             if len(functions) < 2:
                 continue
 
-   
-            # Create per-entry CSV file   
-            output_csv = output_dir / f"{entry_id}_{lang}_function_pairs.csv"
+            # per-entry output file
+            entry_file = output_dir / f"{entry_id}_{lang}_function_pairs.csv"
 
-            with open(output_csv, "w", newline="", encoding="utf-8") as csvfile:
+            with open(entry_file, "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
 
                 writer.writerow([
@@ -51,7 +54,31 @@ def create_pairs_csv(jsonl_file, output_csv):
                         func_b["code"]
                     ])
 
-            print(f"Created: {output_csv}")
+            print(f"Created: {entry_file}")
+
+
+def _filter_functions(functions):
+    """
+    Remove low-quality / trivial functions based on metrics.
+    """
+
+    filtered = []
+
+    for f in functions:
+        metrics = f.get("metrics", {})
+
+        loc = metrics.get("loc", 0)
+        tokens = metrics.get("token_count", 0)
+
+        if loc < MIN_LOC:
+            continue
+
+        if tokens < MIN_TOKEN_COUNT:
+            continue
+
+        filtered.append(f)
+
+    return filtered
 
 def _extract_functions_from_entry(entry):
     """

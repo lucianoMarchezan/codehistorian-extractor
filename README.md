@@ -162,3 +162,8 @@ Multiple models:
 ```
 python run_detection.py --csv output/pairs/calc-test_python_function_pairs.csv --models microsoft/codebert-base Salesforce/codet5-base
 ```
+
+# Requirements
+
+* Run `pip install -r requirements.txt` to install required packages -- depending on your Python kernel additional packages may need to be installed
+* [MS C++ build tools](https://visualstudio.microsoft.com/pt-br/visual-cpp-build-tools/) -- make sure to install Desktop development with C++ (include Win 10/11 SDK and C++ CMake tools for Windows) -- this is **required by Codebleu**

@@ -3,6 +3,7 @@ from sentence_transformers.util import cos_sim
 import torch, json
 from pathlib import Path    
 from src.utils.transformer_test_loader import get_loader
+from codebleu import calc_codebleu
 from src.config import * 
 
 
@@ -22,11 +23,11 @@ def evaluate_sentence_transformer(model_name, csv_file):
     loader = get_loader(csv_path=csv_file)
 
     # Evaluate
-    detailed_entries = _evaluate_model(model, loader)
     filename = Path(csv_file).name
     dataset_name = filename.replace("_function_pairs.csv", "") 
     parts = dataset_name.split("_")
     language = parts[1] if len(parts) > 1 else "unknown"
+    detailed_entries = _evaluate_model(model, loader, language=language)
     # Save results
     _save_individual_results(
         entries=detailed_entries,
@@ -39,7 +40,7 @@ def evaluate_sentence_transformer(model_name, csv_file):
     print(f"Evaluation completed for model: {model_name}")
 
 
-def _evaluate_model(model, loader):
+def _evaluate_model(model, loader, language="unknown"):
 
     detailed_entries = []
 
@@ -53,9 +54,16 @@ def _evaluate_model(model, loader):
 
             for i in range(len(pair_ids)):
 
+                codebleu_score = _compute_codebleu(
+                    texts_a[i],
+                    texts_b[i],
+                    language
+                )
+
                 detailed_entries.append({
                     "pair_id": f"{pair_ids[i][0]}::{pair_ids[i][1]}",
-                    "sim": sims[i].item()
+                    "sim": sims[i].item(),
+                    "codebleu": codebleu_score
                 })
 
     return detailed_entries
@@ -82,7 +90,8 @@ def _save_individual_results(entries: list, model: str, dataset: str, language: 
             "dataset": dataset, 
             "language": language,
             "pair_id": e["pair_id"],
-            "sim": e["sim"]
+            "sim": e["sim"],
+            "codebleu": e["codebleu"]
         }
         for e in entries
     ]
@@ -104,3 +113,16 @@ def _save_individual_results(entries: list, model: str, dataset: str, language: 
         json.dump(existing, f, indent=4, ensure_ascii=False)
 
     print(f"Detailed results saved to: {json_path}")
+
+
+def _compute_codebleu(code_a: str, code_b: str, language: str) -> float:
+    """
+    Compute CodeBLEU between two functions.
+    """
+
+    try:
+        score = calc_codebleu([code_a], [code_b], lang=language)
+        return score["codebleu"]
+
+    except Exception:
+        return None
