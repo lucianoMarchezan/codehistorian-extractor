@@ -151,16 +151,16 @@ Output:
 
 This can be run after the pairs files are created
 
-Run embedding-based similarity analysis:
+Run embedding-based similarity analysis from the root folder:
 
-```
-python run_detection.py --csv output/pairs/calc-test_python_function_pairs.csv
+```bash
+python -m src.run_detection --csv output/calc-test_python_function_pairs.csv
 ```
 
 Multiple models:
 
-```
-python run_detection.py --csv output/pairs/calc-test_python_function_pairs.csv --models microsoft/codebert-base Salesforce/codet5-base
+```bash
+python -m src.run_detection --csv output/calc-test_python_function_pairs.csv --models microsoft/codebert-base Salesforce/codet5-base
 ```
 
 # Requirements

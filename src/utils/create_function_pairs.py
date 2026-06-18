@@ -8,8 +8,8 @@ from src.config import MIN_LOC, MIN_TOKEN_COUNT
 def create_pairs_csv(jsonl_file, output_csv):
 
     output_dir = Path(output_csv)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
+    output_dir.mkdir(parents=True, exist_ok=True) 
+    
     with open(jsonl_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -31,7 +31,8 @@ def create_pairs_csv(jsonl_file, output_csv):
 
             # per-entry output file
             entry_file = output_dir / f"{entry_id}_{lang}_function_pairs.csv"
-
+           
+            print(f"Creating file: {entry_file.resolve()}")
             with open(entry_file, "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
 
@@ -66,9 +67,10 @@ def _filter_functions(functions):
 
     for f in functions:
         metrics = f.get("metrics", {})
-
+        
         loc = metrics.get("loc", 0)
         tokens = metrics.get("token_count", 0)
+        
 
         if loc < MIN_LOC:
             continue
@@ -93,7 +95,8 @@ def _extract_functions_from_entry(entry):
             functions.append({
                 "function_id": func["function_id"],
                 "entry_id": entry_id,
-                "code": func["code"]["normalized"].replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t")
+                "code": func["code"]["normalized"].replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t"),
+                "metrics": func.get("metrics", {})
             })
 
     return functions

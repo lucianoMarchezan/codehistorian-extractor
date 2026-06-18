@@ -1,3 +1,4 @@
 repos/
+models/
 *.pyc
 __pycache__/

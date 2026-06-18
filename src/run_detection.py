@@ -31,9 +31,7 @@ def main():
     for model_name in args.models:
         print(f"\nEvaluating model: {model_name} on {csv_file}")
 
-        results = evaluate_sentence_transformer(model_name, csv_file)
-
-        print(results)
+        evaluate_sentence_transformer(model_name, csv_file) 
 
 
 if __name__ == "__main__":
