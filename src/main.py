@@ -34,6 +34,13 @@ def main():
     )
 
     parser.add_argument(
+        "--entry-id",
+        type=str,
+        default=None,
+        help="Process only a specific entry_id"
+    )
+
+    parser.add_argument(
         "--mode",
         choices=["extract", "pairs", "all"],
         default=DEFAULT_MODE,
@@ -51,7 +58,8 @@ def main():
     if args.mode in ("pairs", "all"):
         create_pairs_csv(
             jsonl_file=args.output,
-            output_csv=args.pairs_output
+            output_csv=args.pairs_output,
+            entry_id=args.entry_id
         )
 
 

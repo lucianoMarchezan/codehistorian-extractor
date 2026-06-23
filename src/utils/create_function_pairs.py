@@ -10,7 +10,7 @@ from src.embeddings.codebert import get_tokenizer, get_model
 from src.config import *
 
 
-def create_pairs_csv(jsonl_file, output_csv):
+def create_pairs_csv(jsonl_file, output_csv, entry_id=None):
 
     output_dir = Path(output_csv)
     output_dir.mkdir(parents=True, exist_ok=True) 
@@ -20,10 +20,13 @@ def create_pairs_csv(jsonl_file, output_csv):
             line = line.strip()
             if not line:
                 continue
-
+            
             entry = json.loads(line)
 
-            entry_id = entry["entry_id"]
+            current_entry_id = entry["entry_id"]
+
+            if entry_id is not None and current_entry_id != entry_id:
+                continue
             lang = entry["project"]["language"]
 
             functions = _extract_functions_from_entry(entry)
@@ -51,10 +54,11 @@ def create_pairs_csv(jsonl_file, output_csv):
                 ])
                 print(f"Computing embeddings for {len(functions)} functions...")
                 stream = embed_functions(functions)
-                index = build_index(stream)
+                index, id_map = build_index(stream)
                 for func_a, func_b in _generate_candidate_pairs(
                     functions,
                     index,
+                    id_map,
                     k=K_NEAREST
                 ):
                     writer.writerow([
@@ -115,6 +119,7 @@ def _extract_functions_from_entry(entry):
             functions.append({
                 "function_id": func["function_id"],
                 "entry_id": entry_id,
+                "name": func.get("name"),
                 "code": func["code"]["normalized"].replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t"),
                 "metrics": func.get("metrics", {})
             })
@@ -130,16 +135,14 @@ def _generate_pairs(functions):
 
 
 
-def _generate_candidate_pairs(functions, index, k=K_NEAREST):
-
-    print(f"Generating candidate pairs for {len(functions)} functions using FAISS...")
+def _generate_candidate_pairs(functions, index, id_map, k=K_NEAREST):
 
     tokenizer = get_tokenizer()
     model = get_model()
 
-    id_map = {int(f["function_id"]): f for f in functions}
+    seen = set()
 
-    for f in enumerate(functions):
+    for f in functions:
 
         inputs = tokenizer(
             f["code"],
@@ -152,7 +155,7 @@ def _generate_candidate_pairs(functions, index, k=K_NEAREST):
             outputs = model(**inputs)
 
         emb = outputs.last_hidden_state[:, 0, :].cpu().numpy().astype("float32")
-        faiss.normalize_L2(emb.reshape(1, -1))
+        faiss.normalize_L2(emb)
 
         scores, neighbors = index.search(
             emb.reshape(1, -1),
@@ -160,28 +163,39 @@ def _generate_candidate_pairs(functions, index, k=K_NEAREST):
         )
 
         for j in neighbors[0][1:]:
+
             func_b = id_map.get(int(j))
             if func_b is None:
                 continue
 
+            # canonical pair (order-independent)
+            a_id = f["function_id"]
+            b_id = func_b["function_id"]
+
+            pair_key = tuple(sorted((a_id, b_id)))
+
+            if pair_key in seen:
+                continue
+
+            seen.add(pair_key)
+
             yield f, func_b
 
-
-
 def _is_getter(func):
-    name = func.get("name")
+    name = func.get("name") 
+
     return (
         name.startswith(("get", "is"))
-        and func["metrics"]["loc"] <= 2
+        and func.get("metrics", {}).get("loc", 0) <= 2
     )
 
 def _is_setter(func):
     name = func.get("name")
     return (
         name.startswith("set")
-        and func["metrics"]["loc"] <= 2
+        and func.get("metrics", {}).get("loc", 0) <= 2
     )
 
 def is_main_function(func):
-    name = func.get("name")
-    return name.lower() == "main"
+    name = func.get("name", "")
+    return name.strip().lower() in {"main", "__main__"}

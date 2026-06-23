@@ -9,7 +9,7 @@ MODELS_PATH = "models/"
 
 
 # Function filtering thresholds (pair generation stage)
-MIN_LOC = 1
+MIN_LOC = 2
 MIN_TOKEN_COUNT = 5
 K_NEAREST = 20
 TOKENIZER_NAME = "microsoft/codebert-base"

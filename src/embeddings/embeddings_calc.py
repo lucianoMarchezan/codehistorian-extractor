@@ -39,13 +39,17 @@ def build_index(stream):
     base = faiss.IndexFlatIP(dim)
     index = faiss.IndexIDMap2(base)
 
-    for f, emb in stream:
+    id_map = {}
+
+    for idx, (f, emb) in enumerate(stream):
         emb = emb.reshape(1, -1).astype("float32")
         faiss.normalize_L2(emb)
 
         index.add_with_ids(
             emb,
-            np.array([int(f["function_id"])])
+            np.array([idx], dtype=np.int64)
         )
 
-    return index
+        id_map[idx] = f
+
+    return index, id_map
