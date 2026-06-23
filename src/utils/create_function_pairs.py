@@ -2,7 +2,12 @@ import json
 import csv
 import itertools
 from pathlib import Path
-from src.config import MIN_LOC, MIN_TOKEN_COUNT
+import faiss
+import torch
+import numpy as np
+from src.embeddings.embeddings_calc import embed_functions, build_index
+from src.embeddings import get_tokenizer, get_model
+from src.config import *
 
 
 def create_pairs_csv(jsonl_file, output_csv):
@@ -44,8 +49,14 @@ def create_pairs_csv(jsonl_file, output_csv):
                     "entry_b_id",
                     "code_b"
                 ])
-
-                for func_a, func_b in _generate_pairs(functions):
+                print(f"Computing embeddings for {len(functions)} functions...")
+                stream = embed_functions(functions)
+                index = build_index(stream)
+                for func_a, func_b in _generate_candidate_pairs(
+                    functions,
+                    index,
+                    k=K_NEAREST
+                ):
                     writer.writerow([
                         func_a["function_id"],
                         func_a["entry_id"],
@@ -76,6 +87,15 @@ def _filter_functions(functions):
             continue
 
         if tokens < MIN_TOKEN_COUNT:
+            continue
+
+        if _is_getter(f):
+            continue
+
+        if _is_setter(f):
+            continue
+
+        if is_main_function(f):
             continue
 
         filtered.append(f)
@@ -110,4 +130,55 @@ def _generate_pairs(functions):
 
 
 
- 
+def _generate_candidate_pairs(functions, index, k=K_NEAREST):
+
+    print(f"Generating candidate pairs for {len(functions)} functions using FAISS...")
+
+    tokenizer = get_tokenizer()
+    model = get_model()
+
+    id_map = {int(f["function_id"]): f for f in functions}
+
+    for f in enumerate(functions):
+
+        inputs = tokenizer(
+            f["code"],
+            return_tensors="pt",
+            truncation=True,
+            max_length=512
+        ).to(model.device)
+
+        with torch.inference_mode():
+            outputs = model(**inputs)
+
+        emb = outputs.last_hidden_state[:, 0, :].cpu().numpy().astype("float32")
+        faiss.normalize_L2(emb.reshape(1, -1))
+
+        scores, neighbors = index.search(
+            emb.reshape(1, -1),
+            k + 1
+        )
+
+        for j in neighbors[0][1:]:
+            func_b = id_map.get(int(j))
+            if func_b is None:
+                continue
+
+            yield f, func_b
+
+
+
+def _is_getter(func):
+    return (
+        func["name"].startswith(("get", "is"))
+        and func["metrics"]["loc"] <= 2
+    )
+
+def _is_setter(func):
+    return (
+        func["name"].startswith("set")
+        and func["metrics"]["loc"] <= 2
+    )
+
+def is_main_function(func):
+    return func["name"].lower() == "main"

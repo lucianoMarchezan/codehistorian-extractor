@@ -64,24 +64,30 @@ Each line corresponds to one project.
 ```
 src/
 │
-├── main.py                      # Extraction pipeline entry point
-├── pipeline.py                 # Core extraction logic
-├── models.py                   # Data structures
-├── run_detection.py                   # Detection entry point
+├── main.py                                      # Extraction pipeline entry point
+├── extractor_pipeline.py                        # Core extraction logic
+├── run_detection.py                             # Detection entry point
+├── config.py                                    # Configuration file
 │
 ├── utils/
 │   ├── helper_functions.py
 │   ├── create_function_pairs.py
+│   ├── models.py                                # Data structures
+│   └── transformer_test_loader.py               # Data loader
 │
 ├── parsers/
 │   ├── base.py
-│   ├── python_parser.py
+│   └── python_parser.py
 │
 ├── normalization/
 │   └── serializer.py
 │
 ├── clone_detection/
 │   └── sentence_transformers_detector.py
+│
+├── embeddings/
+│   ├── codebert.py
+│   └── embeddings_calc.py
 │
 output/
 results/
