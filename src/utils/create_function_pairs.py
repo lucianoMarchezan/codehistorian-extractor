@@ -6,7 +6,7 @@ import faiss
 import torch
 import numpy as np
 from src.embeddings.embeddings_calc import embed_functions, build_index
-from src.embeddings import get_tokenizer, get_model
+from src.embeddings.codebert import get_tokenizer, get_model
 from src.config import *
 
 

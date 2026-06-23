@@ -1,8 +1,7 @@
-from transformers import AutoTokenizer, AutoModel 
 import torch
 import faiss
 import numpy as np
-from src.embeddings import get_tokenizer, get_model
+from src.embeddings.codebert import get_tokenizer, get_model
 from src.config import *
 
 def embed_functions(functions, batch_size=16, device=DEVICE):
