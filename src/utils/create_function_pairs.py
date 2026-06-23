@@ -169,16 +169,19 @@ def _generate_candidate_pairs(functions, index, k=K_NEAREST):
 
 
 def _is_getter(func):
+    name = func.get("name")
     return (
-        func["name"].startswith(("get", "is"))
+        name.startswith(("get", "is"))
         and func["metrics"]["loc"] <= 2
     )
 
 def _is_setter(func):
+    name = func.get("name")
     return (
-        func["name"].startswith("set")
+        name.startswith("set")
         and func["metrics"]["loc"] <= 2
     )
 
 def is_main_function(func):
-    return func["name"].lower() == "main"
+    name = func.get("name")
+    return name.lower() == "main"
