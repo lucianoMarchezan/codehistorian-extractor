@@ -1,5 +1,5 @@
 tree_sitter
-tree-sitter-python==0.21
+tree-sitter-python
 tree-sitter-java
 codebleu
 sentence_transformers
