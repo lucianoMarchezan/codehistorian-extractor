@@ -8,7 +8,7 @@ from src.utils.models import (
 from src.normalization.serializer import JSONLSerializer
 
 from src.parsers.python_parser import PythonParser
-
+from src.parsers.java_parser import JavaParser
 from src.utils.helper_functions import (
     detect_language,
     iter_source_files,
@@ -81,8 +81,14 @@ class ExtractionPipeline:
         self.serializer.write(project)
 
     def _get_parser(self, language):
+        parsers = {
+            "python": PythonParser,
+            "java": JavaParser,
+        }
 
-        if language == "python":
-            return PythonParser()
+        if language not in parsers:
+            raise NotImplementedError(
+                f"Unsupported language: {language}"
+            )
 
-        raise NotImplementedError(language)
+        return parsers[language]()
