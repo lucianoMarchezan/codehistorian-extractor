@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tree_sitter import Parser, Language
+from tree_sitter import Parser
 import tree_sitter_java
 
 from src.utils.models import (
@@ -24,7 +24,7 @@ class JavaParser:
 
         self.parser = Parser()
 
-        self.parser.language = Language(
+        self.parser.set_language(
             tree_sitter_java.language()
         )
 

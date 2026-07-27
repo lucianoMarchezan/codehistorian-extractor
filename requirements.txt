@@ -1,6 +1,6 @@
 tree_sitter
-tree-sitter-python
-tree-sitter-java
+tree-sitter-python==0.21
+tree-sitter-java==0.21
 codebleu
 sentence_transformers
 faiss-cpu
