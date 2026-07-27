@@ -118,7 +118,14 @@ The extractor/pair creation is done via a single entry point (`src.main`) and su
 
 ## Running Examples
 
-### 1. Full pipeline (recommended)
+### For all projects
+Replace ```repos``` with the folder containing all projects
+
+```bash
+python -m src.main repos --mode all
+```
+
+### 1. Full pipeline (recommended) for one project
 
 Extract + generate pairs:
 

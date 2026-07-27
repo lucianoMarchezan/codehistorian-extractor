@@ -1,6 +1,7 @@
 from src.extractor_pipeline import ExtractionPipeline
 from src.utils.create_function_pairs import create_pairs_csv
 import argparse
+from pathlib import Path
 from src.utils.helper_functions import print_banner
 from src.config import *
 
@@ -16,7 +17,7 @@ def main():
     parser.add_argument(
         "project_path",
         type=str,
-        help="Path to the project root directory"
+        help="Path to project folder or repository collection"
     )
 
     parser.add_argument(
@@ -49,17 +50,71 @@ def main():
 
     args = parser.parse_args()
 
-    if args.mode in ("extract", "all"):
-        extractor_pipeline = ExtractionPipeline(
-            output_file=args.output
+    path = Path(args.project_path)
+    if path.is_dir() and any(p.is_dir() for p in path.iterdir()):
+        _process_repositories(
+            root_folder=path,
+            mode=args.mode
         )
-        extractor_pipeline.run(args.project_path)
+    else:
 
-    if args.mode in ("pairs", "all"):
-        create_pairs_csv(
-            jsonl_file=args.output,
-            output_csv=args.pairs_output,
+        _process_project(
+            project_path=path,
+            output_file=args.output,
+            pairs_output=args.pairs_output,
+            mode=args.mode,
             entry_id=args.entry_id
+        )
+
+def _process_project(project_path, output_file, pairs_output, mode, entry_id=None):
+
+    print(f"\nProcessing: {project_path}")
+
+    if mode in ("extract", "all"):
+        extractor_pipeline = ExtractionPipeline(
+            output_file=output_file
+        )
+
+        extractor_pipeline.run(str(project_path))
+
+    if mode in ("pairs", "all"):
+        create_pairs_csv(
+            jsonl_file=output_file,
+            output_csv=pairs_output,
+            entry_id=entry_id
+        )
+
+
+def _process_repositories(root_folder, mode):
+
+    root = Path(root_folder)
+
+    projects = [
+        p for p in root.iterdir()
+        if p.is_dir()
+    ]
+
+    print(f"Found {len(projects)} projects")
+
+    for project in projects:
+
+        project_name = project.name
+
+        output_jsonl = (
+            Path("output") /
+            f"{project_name}.jsonl"
+        )
+
+        output_csv = (
+            Path("output") /
+            f"{project_name}_pairs.csv"
+        )
+
+        _process_project(
+            project_path=project,
+            output_file=str(output_jsonl),
+            pairs_output=str(output_csv),
+            mode=mode
         )
 
 
