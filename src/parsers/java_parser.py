@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from tree_sitter import Parser
+
+from tree_sitter import Language, Parser
 import tree_sitter_java
 
 from src.utils.models import (
@@ -22,11 +23,9 @@ class JavaParser:
 
     def __init__(self):
 
-        self.parser = Parser()
+        JAVA_LANGUAGE = Language(tree_sitter_java.language())
 
-        self.parser.set_language(
-            tree_sitter_java.language()
-        )
+        self.parser = Parser(JAVA_LANGUAGE)
 
 
     def extract(self, file_path: Path, project_root: Path):
