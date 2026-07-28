@@ -12,8 +12,8 @@ from src.config import *
 
 def create_pairs_csv(jsonl_file, output_csv, entry_id=None):
 
-    output_dir = Path(output_csv)
-    output_dir.mkdir(parents=True, exist_ok=True) 
+    output_file = Path(output_csv)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     
     with open(jsonl_file, "r", encoding="utf-8") as f:
         for line in f:
@@ -38,10 +38,9 @@ def create_pairs_csv(jsonl_file, output_csv, entry_id=None):
                 continue
 
             # per-entry output file
-            entry_file = output_dir / f"{entry_id}_{lang}_function_pairs.csv"
-           
-            print(f"Creating file: {entry_file.resolve()}")
-            with open(entry_file, "w", newline="", encoding="utf-8") as csvfile:
+            print(f"Creating file: {output_file.resolve()}")
+
+            with open(output_file, "w", newline="", encoding="utf-8") as csvfile:
                 writer = csv.writer(csvfile)
 
                 writer.writerow([
@@ -70,7 +69,7 @@ def create_pairs_csv(jsonl_file, output_csv, entry_id=None):
                         func_b["code"]
                     ])
 
-            print(f"Created: {entry_file}")
+            print(f"Created: {output_file}")
 
 
 def _filter_functions(functions):
