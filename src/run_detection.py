@@ -15,8 +15,7 @@ def main():
 
     parser.add_argument(
         "--csv-folder",
-        type=str,
-        required=True,
+        type=str, 
         default="output/",
         help="Path to folder containing function pair CSV files",
     )

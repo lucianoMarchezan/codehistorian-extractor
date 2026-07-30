@@ -4,3 +4,4 @@ tree-sitter-java==0.21.0
 codebleu
 sentence_transformers
 faiss-cpu
+pandas
