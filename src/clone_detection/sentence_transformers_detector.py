@@ -71,11 +71,10 @@ def _evaluate_model(model, loader, language="unknown"):
                     "codebleu": codebleu_score
                 })
 
-            progress = int(100 * batch_idx / total_batches)
-            if progress % 5 == 0 or batch_idx == total_batches:
+            if batch_idx % 100 == 0 or batch_idx == total_batches:
                 print(
                     f"Evaluation progress: {batch_idx}/{total_batches} "
-                    f"batches ({progress}%)"
+                    f"batches ({100 * batch_idx / total_batches:.1f}%)"
                 )
 
     return detailed_entries
