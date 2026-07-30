@@ -27,6 +27,7 @@ def evaluate_sentence_transformer(model_name, csv_file):
     dataset_name = filename.replace("_function_pairs.csv", "") 
     parts = dataset_name.split("_")
     language = parts[1] if len(parts) > 1 else "unknown"
+    print(f"Starting evaluation for {model_name} on {dataset_name}")
     detailed_entries = _evaluate_model(model, loader, language=language)
     # Save results
     _save_individual_results(
@@ -44,8 +45,10 @@ def _evaluate_model(model, loader, language="unknown"):
 
     detailed_entries = []
 
+    total_batches = len(loader)
+
     with torch.no_grad():
-        for texts_a, texts_b, pair_ids in loader:
+        for batch_idx, (texts_a, texts_b, pair_ids) in enumerate(loader, start=1):
 
             emb1 = model.encode(texts_a, convert_to_tensor=True)
             emb2 = model.encode(texts_b, convert_to_tensor=True)
@@ -65,6 +68,12 @@ def _evaluate_model(model, loader, language="unknown"):
                     "sim": sims[i].item(),
                     "codebleu": codebleu_score
                 })
+
+            if batch_idx % 10 == 0 or batch_idx == total_batches:
+                print(
+                    f"Evaluation progress: {batch_idx}/{total_batches} "
+                    f"batches ({100 * batch_idx / total_batches:.1f}%)"
+                )
 
     return detailed_entries
 
