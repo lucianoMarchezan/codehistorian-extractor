@@ -6,7 +6,9 @@ from src.utils.transformer_test_loader import get_loader
 from src.utils.helper_functions import get_language_from_jsonl
 from codebleu import calc_codebleu
 from src.config import * 
+import logging
 
+logging.getLogger("root").setLevel(logging.ERROR)
 
 def evaluate_sentence_transformer(model_name, csv_file):
 
