@@ -125,15 +125,20 @@ def _save_individual_results(entries: list, model: str, dataset: str, language: 
     print(f"Detailed results saved to: {json_path}")
 
 
-def _compute_codebleu(code_a: str, code_b: str, language: str) -> float:
+def _compute_codebleu(code_a: str, code_b: str, language: str) -> float: 
     """
-    Compute CodeBLEU between two functions.
+    Compute a syntactic-only CodeBLEU score between two code snippets.
+    Ignores the semantic component (dataflow_match_score).
     """
+    score = calc_codebleu([code_a], [code_b], lang=language)
+    
+    # Combine only syntactic components
+    syntactic_components = [
+        score["ngram_match_score"],
+        score["weighted_ngram_match_score"],
+        score["syntax_match_score"]
+    ]
 
-    try:
-        score = calc_codebleu([code_a], [code_b], lang=language)
-        return score["codebleu"]
-
-    except Exception as e:
-        print(f"CodeBLEU failed ({language}): {e}")
-        return None
+    # Average them equally
+    syntactic_score = sum(syntactic_components) / len(syntactic_components)
+    return float(syntactic_score)
