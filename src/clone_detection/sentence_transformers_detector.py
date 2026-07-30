@@ -3,6 +3,7 @@ from sentence_transformers.util import cos_sim
 import torch, json
 from pathlib import Path    
 from src.utils.transformer_test_loader import get_loader
+from src.utils.helper_functions import get_language_from_jsonl
 from codebleu import calc_codebleu
 from src.config import * 
 
@@ -25,8 +26,7 @@ def evaluate_sentence_transformer(model_name, csv_file):
     # Evaluate
     filename = Path(csv_file).name
     dataset_name = filename.replace("_function_pairs.csv", "") 
-    parts = dataset_name.split("_")
-    language = parts[1] if len(parts) > 1 else "unknown"
+    language = get_language_from_jsonl(csv_file)
     print(f"Starting evaluation for {model_name} on {dataset_name}")
     detailed_entries = _evaluate_model(model, loader, language=language)
     # Save results

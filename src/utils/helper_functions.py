@@ -1,6 +1,5 @@
 from pathlib import Path
-import hashlib, json, uuid
-
+import hashlib, json, uuid, json
 
 SUPPORTED_EXTENSIONS = {
     ".py": "python",
@@ -94,3 +93,21 @@ def print_banner():
 """
 
     print(banner)
+
+
+
+
+def get_language_from_jsonl(csv_file: str) -> str:
+    csv_path = Path(csv_file)
+
+    # remove "_pairs.csv"
+    jsonl_path = csv_path.parent / csv_path.name.replace("_pairs.csv", ".jsonl")
+
+    if not jsonl_path.exists():
+        print(f"Metadata file not found: {jsonl_path}")
+        return "unknown"
+
+    with open(jsonl_path, "r", encoding="utf-8") as f:
+        entry = json.loads(f.readline())
+
+    return entry.get("project", {}).get("language", "unknown")
