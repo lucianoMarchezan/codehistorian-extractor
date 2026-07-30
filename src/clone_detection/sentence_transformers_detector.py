@@ -69,10 +69,11 @@ def _evaluate_model(model, loader, language="unknown"):
                     "codebleu": codebleu_score
                 })
 
-            if batch_idx % 10 == 0 or batch_idx == total_batches:
+            progress = int(100 * batch_idx / total_batches)
+            if progress % 5 == 0 or batch_idx == total_batches:
                 print(
                     f"Evaluation progress: {batch_idx}/{total_batches} "
-                    f"batches ({100 * batch_idx / total_batches:.1f}%)"
+                    f"batches ({progress}%)"
                 )
 
     return detailed_entries
@@ -133,5 +134,6 @@ def _compute_codebleu(code_a: str, code_b: str, language: str) -> float:
         score = calc_codebleu([code_a], [code_b], lang=language)
         return score["codebleu"]
 
-    except Exception:
+    except Exception as e:
+        print(f"CodeBLEU failed ({language}): {e}")
         return None
