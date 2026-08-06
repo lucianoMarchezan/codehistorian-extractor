@@ -1,4 +1,7 @@
 repos/
+output/
+results/
 models/
 *.pyc
+*.zip
 __pycache__/

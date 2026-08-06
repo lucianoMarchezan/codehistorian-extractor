@@ -27,7 +27,7 @@ def evaluate_sentence_transformer(model_name, csv_file):
 
     # Evaluate
     filename = Path(csv_file).name
-    dataset_name = filename.replace("_function_pairs.csv", "") 
+    dataset_name = filename.replace("_pairs.csv", "") 
     language = get_language_from_jsonl(csv_file)
     print(f"Starting evaluation for {model_name} on {dataset_name}")
     detailed_entries = _evaluate_model(model, loader, language=language)
