@@ -4,4 +4,5 @@ results/
 models/
 *.pyc
 *.zip
+similarity_comparison_data.csv
 __pycache__/
