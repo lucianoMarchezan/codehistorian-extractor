@@ -5,3 +5,5 @@ codebleu
 sentence_transformers
 faiss-cpu
 pandas
+ijson
+pyarrow

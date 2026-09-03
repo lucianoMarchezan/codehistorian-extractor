@@ -41,135 +41,102 @@ def find_function_metadata(jsonl_file, function_ids):
 
     return found
 
-
 def format_code(code):
     """Convert escaped newlines/tabs to actual formatting."""
+
     if pd.isna(code):
         return ""
 
     code = str(code)
 
-    # Convert literal escape sequences from CSV/JSON
     code = code.replace("\\n", "\n")
     code = code.replace("\\t", "\t")
 
     return code.strip()
 
 
-def show_qualitative_pair(
-    project_name,
-    sim_range=(0.0, 1.0),
-    codebleu_range=(0.0, 1.0),
-    select_by="sim",
-    model="microsoft/codebert-base-ft",
-    language="python",
-):
-    """
-    Find and display a qualitative clone pair satisfying independent
-    cosine-similarity and CodeBLEU ranges.
+def _get_paths(project_name):
+    """Return all paths used by the qualitative-pair functions."""
 
-    Parameters
-    ----------
-    project_name : str
-        Project name.
+    return {
+        "results_json": (
+            Path("../../results")
+            / f"{project_name}_detailed_results.json"
+        ),
+        "pairs_file": (
+            Path("../../output")
+            / f"{project_name}_pairs.csv"
+        ),
+        "metadata_jsonl": (
+            Path("../../output")
+            / f"{project_name}.jsonl"
+        ),
+    }
 
-    sim_range : tuple
-        Minimum and maximum cosine similarity.
 
-    codebleu_range : tuple
-        Minimum and maximum CodeBLEU.
+def _load_data(project_name):
+    """Load similarity results and pair CSV."""
 
-    select_by : str
-        Metric used to select the best pair among candidates.
-        Either "sim" or "codebleu".
+    paths = _get_paths(project_name)
 
-    model : str
-        Embedding model.
-
-    language : str
-        Programming language.
-    """
-
-    if select_by not in {"sim", "codebleu"}:
-        raise ValueError("select_by must be either 'sim' or 'codebleu'")
-
-    # Paths
-
-    results_json = (
-        Path("../../results")
-        / f"{project_name}_detailed_results.json"
-    )
-
-    pairs_file = (
-        Path("../../output")
-        / f"{project_name}_pairs.csv"
-    )
-
-    metadata_jsonl = (
-        Path("../../output")
-        / f"{project_name}.jsonl"
-    )
-
-    # Load similarity results
-
-    with open(results_json, "r", encoding="utf-8") as f:
+    # Similarity results
+    with open(paths["results_json"], "r", encoding="utf-8") as f:
         results = json.load(f)
 
     results_df = pd.DataFrame(results)
 
-    results_df = results_df[
-        (results_df["model"] == model)
-        & (results_df["language"] == language)
-        & (results_df["sim"] >= sim_range[0])
-        & (results_df["sim"] <= sim_range[1])
-        & (results_df["codebleu"] >= codebleu_range[0])
-        & (results_df["codebleu"] <= codebleu_range[1])
-    ].copy()
+    # Make sure metrics are numeric
+    results_df["sim"] = pd.to_numeric(
+        results_df["sim"],
+        errors="coerce",
+    )
 
-    if results_df.empty:
-        print("No pair satisfies the specified constraints.")
-        print()
-        print(f"Cosine similarity: {sim_range}")
-        print(f"CodeBLEU:          {codebleu_range}")
-        return
+    results_df["codebleu"] = pd.to_numeric(
+        results_df["codebleu"],
+        errors="coerce",
+    )
 
-    # Select best candidate
+    # Pair CSV
+    pairs_df = pd.read_csv(paths["pairs_file"])
 
-    selected = results_df.loc[
-        results_df[select_by].idxmax()
-    ]
+    pairs_df["function_a_id"] = (
+        pairs_df["function_a_id"]
+        .astype(str)
+        .str.strip()
+    )
+
+    pairs_df["function_b_id"] = (
+        pairs_df["function_b_id"]
+        .astype(str)
+        .str.strip()
+    )
+
+    return results_df, pairs_df, paths["metadata_jsonl"]
+
+
+def _display_pair(
+    project_name,
+    selected,
+    pair,
+    metadata_jsonl,
+    model,
+    language,
+):
+    """Display a selected qualitative pair."""
 
     pair_id = selected["pair_id"]
 
     function_a_id, function_b_id = pair_id.split("::")
 
-    # Load pair CSV
-
-    pairs_df = pd.read_csv(pairs_file)
-
-    pair = pairs_df[
-        (pairs_df["function_a_id"] == function_a_id)
-        & (pairs_df["function_b_id"] == function_b_id)
-    ]
-
-    if pair.empty:
-        raise ValueError(
-            f"Pair not found in {pairs_file}:\n{pair_id}"
-        )
-
-    pair = pair.iloc[0]
-
     code_a = format_code(pair["code_a"])
     code_b = format_code(pair["code_b"])
 
-    # Metadata
-
     metadata = find_function_metadata(
         metadata_jsonl,
-        [function_a_id, function_b_id]
+        [function_a_id, function_b_id],
     )
 
-    # Print overview
+    # Overview
 
     print("=" * 80)
     print("QUALITATIVE EXAMPLE")
@@ -200,6 +167,7 @@ def show_qualitative_pair(
 
         if info is None:
             print("Metadata not found.")
+
         else:
             print(f"Function:       {info['name']}")
             print(f"Qualified name: {info['qualified_name']}")
@@ -207,13 +175,330 @@ def show_qualitative_pair(
             print(f"File:           {info['file_name']}")
             print(f"Path:           {info['relative_path']}")
             print(f"Package:        {info['package']}")
-            print(f"Lines:          {info['start_line']}--{info['end_line']}")
+            print(
+                f"Lines:          "
+                f"{info['start_line']}--{info['end_line']}"
+            )
 
         print()
 
         display(
             Code(
                 code,
-                language=language
+                language=language,
             )
         )
+
+
+def _get_pair_from_csv(
+    pairs_df,
+    function_a_ids,
+    function_b_ids,
+):
+    """
+    Find a pair in either orientation.
+
+    Returns the first matching pair.
+    """
+
+    pair = pairs_df[
+        (
+            pairs_df["function_a_id"].isin(function_a_ids)
+            &
+            pairs_df["function_b_id"].isin(function_b_ids)
+        )
+        |
+        (
+            pairs_df["function_a_id"].isin(function_b_ids)
+            &
+            pairs_df["function_b_id"].isin(function_a_ids)
+        )
+    ]
+
+    if pair.empty:
+        return None
+
+    return pair.iloc[0]
+
+
+def show_qualitative_pair(
+    project_name,
+    sim_range=(0.0, 1.0),
+    codebleu_range=(0.0, 1.0),
+    select_by="sim",
+    model="microsoft/codebert-base-ft",
+    language="python",
+):
+    """
+    Find and display a qualitative clone pair based on
+    cosine similarity and CodeBLEU ranges.
+
+    Example
+    -------
+    show_qualitative_pair(
+        AG_PROJECT_NAME,
+        sim_range=(0, 0.3),
+        codebleu_range=(0.0, 0.35),
+        select_by="sim",
+    )
+    """
+
+    if select_by not in {"sim", "codebleu"}:
+        raise ValueError(
+            "select_by must be either 'sim' or 'codebleu'"
+        )
+
+    results_df, pairs_df, metadata_jsonl = _load_data(
+        project_name
+    )
+
+    # Filter
+
+    filtered = results_df[
+        (results_df["model"] == model)
+        &
+        (results_df["language"] == language)
+        &
+        results_df["sim"].between(
+            sim_range[0],
+            sim_range[1],
+            inclusive="both",
+        )
+        &
+        results_df["codebleu"].between(
+            codebleu_range[0],
+            codebleu_range[1],
+            inclusive="both",
+        )
+    ].copy()
+
+    if filtered.empty:
+        print("No pair satisfies the specified constraints.")
+        print()
+        print(f"Cosine similarity: {sim_range}")
+        print(f"CodeBLEU:          {codebleu_range}")
+        return
+
+    # Select best candidate
+
+    selected = filtered.loc[
+        filtered[select_by].idxmax()
+    ]
+
+    pair_id = str(selected["pair_id"]).strip()
+
+    try:
+        function_a_id, function_b_id = pair_id.split("::")
+    except ValueError:
+        raise ValueError(
+            f"Invalid pair_id format: {pair_id}"
+        )
+
+    # Find pair in CSV
+
+    pair = pairs_df[
+        (pairs_df["function_a_id"] == function_a_id)
+        &
+        (pairs_df["function_b_id"] == function_b_id)
+    ]
+
+    # Try reverse orientation
+    if pair.empty:
+        pair = pairs_df[
+            (pairs_df["function_a_id"] == function_b_id)
+            &
+            (pairs_df["function_b_id"] == function_a_id)
+        ]
+
+    if pair.empty:
+        raise ValueError(
+            f"Pair not found in pairs CSV:\n{pair_id}"
+        )
+
+    pair = pair.iloc[0]
+
+    # Display
+
+    _display_pair(
+        project_name=project_name,
+        selected=selected,
+        pair=pair,
+        metadata_jsonl=metadata_jsonl,
+        model=model,
+        language=language,
+    )
+
+
+def show_qualitative_pair_by_id(
+    project_name,
+    function_ids,
+    model="microsoft/codebert-base-ft",
+    language="python",
+):
+    """
+    Find and display a specific pair using function IDs.
+
+    The order of function_ids does not matter.
+    """
+
+    if len(function_ids) != 2:
+        raise ValueError(
+            "function_ids must contain exactly two IDs."
+        )
+
+    function_id_1 = str(function_ids[0]).strip()
+    function_id_2 = str(function_ids[1]).strip()
+    # Load data
+    results_df, pairs_df, metadata_jsonl = _load_data(
+        project_name
+    )
+    # Normalize IDs
+    pairs_df["function_a_id"] = (
+        pairs_df["function_a_id"]
+        .astype(str)
+        .str.strip()
+    )
+
+    pairs_df["function_b_id"] = (
+        pairs_df["function_b_id"]
+        .astype(str)
+        .str.strip()
+    )
+    # Find pair -- BOTH orientations
+    pair = pairs_df[
+        (
+            (pairs_df["function_a_id"] == function_id_1)
+            &
+            (pairs_df["function_b_id"] == function_id_2)
+        )
+        |
+        (
+            (pairs_df["function_a_id"] == function_id_2)
+            &
+            (pairs_df["function_b_id"] == function_id_1)
+        )
+    ]
+    # Diagnostic information
+    if pair.empty:
+
+        print("Could not find pair.")
+        print()
+        print("Requested function IDs:")
+        print(f"  {function_id_1}")
+        print(f"  {function_id_2}")
+        print()
+
+        # Check whether each ID exists anywhere in the CSV
+        id1_matches = pairs_df[
+            (pairs_df["function_a_id"] == function_id_1)
+            |
+            (pairs_df["function_b_id"] == function_id_1)
+        ]
+
+        id2_matches = pairs_df[
+            (pairs_df["function_a_id"] == function_id_2)
+            |
+            (pairs_df["function_b_id"] == function_id_2)
+        ]
+
+        print(
+            f"Occurrences of first ID:  {len(id1_matches)}"
+        )
+        print(
+            f"Occurrences of second ID: {len(id2_matches)}"
+        )
+
+        if not id1_matches.empty:
+            print("\nPairs involving first ID:")
+            print(
+                id1_matches[
+                    [
+                        "function_a_id",
+                        "function_b_id",
+                    ]
+                ]
+                .head(10)
+                .to_string(index=False)
+            )
+
+        if not id2_matches.empty:
+            print("\nPairs involving second ID:")
+            print(
+                id2_matches[
+                    [
+                        "function_a_id",
+                        "function_b_id",
+                    ]
+                ]
+                .head(10)
+                .to_string(index=False)
+            )
+
+        raise ValueError(
+            "Pair not found in pairs CSV."
+        )
+    # We expect exactly one pair
+    if len(pair) > 1:
+        print(
+            f"Warning: found {len(pair)} matching rows. "
+            "Using the first."
+        )
+
+    pair = pair.iloc[0]
+
+    actual_a_id = pair["function_a_id"]
+    actual_b_id = pair["function_b_id"]
+    # Find corresponding result
+    # Results JSON uses pair_id = A::B
+    pair_id = f"{actual_a_id}::{actual_b_id}"
+
+    results_df["pair_id"] = (
+        results_df["pair_id"]
+        .astype(str)
+        .str.strip()
+    )
+
+    selected = results_df[
+        (results_df["pair_id"] == pair_id)
+        &
+        (results_df["model"] == model)
+        &
+        (results_df["language"] == language)
+    ]
+
+    # Try reverse orientation
+    if selected.empty:
+
+        reverse_pair_id = (
+            f"{actual_b_id}::{actual_a_id}"
+        )
+
+        selected = results_df[
+            (results_df["pair_id"] == reverse_pair_id)
+            &
+            (results_df["model"] == model)
+            &
+            (results_df["language"] == language)
+        ]
+
+    if selected.empty:
+
+        raise ValueError(
+            "Pair was found in CSV, but no matching "
+            "similarity result was found.\n\n"
+            f"CSV pair:\n"
+            f"  {actual_a_id}::{actual_b_id}\n\n"
+            f"Model: {model}\n"
+            f"Language: {language}"
+        )
+
+    selected = selected.iloc[0]
+    # Display
+    _display_pair(
+        project_name=project_name,
+        selected=selected,
+        pair=pair,
+        metadata_jsonl=metadata_jsonl,
+        model=model,
+        language=language,
+    )

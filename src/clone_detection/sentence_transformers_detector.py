@@ -1,3 +1,5 @@
+from fileinput import filename
+
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import cos_sim  
 import torch, json
@@ -26,8 +28,8 @@ def evaluate_sentence_transformer(model_name, csv_file):
     loader = get_loader(csv_path=csv_file)
 
     # Evaluate
-    filename = Path(csv_file).name
-    dataset_name = filename.replace("_pairs.csv", "") 
+    filename = Path(csv_file).stem
+    dataset_name = filename.removesuffix("_pairs")
     language = get_language_from_jsonl(csv_file)
     print(f"Starting evaluation for {model_name} on {dataset_name}")
     detailed_entries = _evaluate_model(model, loader, language=language)
