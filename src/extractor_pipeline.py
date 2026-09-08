@@ -45,7 +45,7 @@ class ExtractionPipeline:
 
         for f in files[:10]:
             print(f)
-        parser = self._get_parser(language)
+        parser = self._get_parser(language, project_id)
 
         project = ProjectEntry(
             entry_id=project_root.name,
@@ -80,7 +80,7 @@ class ExtractionPipeline:
 
         self.serializer.write(project)
 
-    def _get_parser(self, language):
+    def _get_parser(self, language, project_id: str):
         parsers = {
             "python": PythonParser,
             "java": JavaParser,
@@ -88,7 +88,7 @@ class ExtractionPipeline:
 
         if language not in parsers:
             raise NotImplementedError(
-                f"Unsupported language: {language}"
+                f"Unsupported language '{language}' for project '{project_id}'" 
             )
 
         return parsers[language]()
