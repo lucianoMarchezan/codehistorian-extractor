@@ -15,11 +15,13 @@ PARQUET_FILE = RESULTS_DIR / "results.parquet"
 def get_generation_type(prefix):
     """Determine the generation type from the file index."""
 
-    if prefix >= 68:
-        return "llm"
+    remainder = prefix % 3
 
-    if prefix % 2 == 0:
+    if remainder == 0:
         return "no_llm"
+
+    if remainder == 1:
+        return "llm"
 
     return "agentic"
 
