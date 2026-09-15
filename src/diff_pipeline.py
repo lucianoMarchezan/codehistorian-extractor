@@ -13,18 +13,17 @@ from src.diff.version_diff import (
 
 VERSION_PATTERN = re.compile(r"^(\d+)_(.+)$")
 
-
 def get_version_groups(input_dir):
-
     groups = {}
 
     for path in input_dir.iterdir():
-
         if not path.is_file():
             continue
 
-        match = VERSION_PATTERN.match(path.name)
+        if path.suffix != ".jsonl":
+            continue
 
+        match = VERSION_PATTERN.match(path.name)
         if not match:
             continue
 
@@ -43,6 +42,7 @@ def get_version_groups(input_dir):
         groups[project_number]["versions"][version] = path
 
     return groups
+
 
 
 def count_functions(project):
@@ -78,7 +78,7 @@ def main():
 
     input_dir = Path(args.input_folder)
     output_dir = Path(args.diff_output)
-    
+
     if not input_dir.is_dir():
         print(f"Not a directory: {input_dir}")
         return 1
