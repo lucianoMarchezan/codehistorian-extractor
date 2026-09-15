@@ -142,7 +142,7 @@ def main():
         print(
             f"  V2 -> V3: {added_v2_v3} added functions"
         )
-         project_name = project_v1["project"]["name"]
+        project_name = project_v1["project"]["name"]
         if added_v1_v2 > 0:
 
            
