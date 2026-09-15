@@ -17,11 +17,8 @@ def load_project(path):
     return json.loads(lines[0])
 
 
-def function_key(source_file, function):
-    return (
-        source_file["relative_path"],
-        function["signature"],
-    )
+def function_key(function):
+    return function["signature"]
 
 
 def collect_functions(project):
