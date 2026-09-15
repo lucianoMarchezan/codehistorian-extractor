@@ -142,12 +142,13 @@ def main():
         print(
             f"  V2 -> V3: {added_v2_v3} added functions"
         )
-
+         project_name = project_v1["project"]["name"]
         if added_v1_v2 > 0:
 
+           
             output_file = (
                 output_dir
-                / f"{project_number:04d}_v1_v2_diff.jsonl"
+                / f"{project_name}_v1_v2.jsonl"
             )
 
             write_project(
@@ -159,7 +160,7 @@ def main():
 
             output_file = (
                 output_dir
-                / f"{project_number:04d}_v2_v3_diff.jsonl"
+                / f"{project_name}_v2_v3.jsonl"
             )
 
             write_project(
