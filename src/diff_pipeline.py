@@ -62,6 +62,7 @@ def main():
     parser.add_argument(
         "input_folder",
         type=str,
+        nargs="?",
         default="output/",
         help="Folder containing the project version JSONL files"
     )
@@ -77,7 +78,7 @@ def main():
 
     input_dir = Path(args.input_folder)
     output_dir = Path(args.diff_output)
-
+    
     if not input_dir.is_dir():
         print(f"Not a directory: {input_dir}")
         return 1
