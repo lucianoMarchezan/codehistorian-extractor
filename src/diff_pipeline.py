@@ -1,7 +1,7 @@
-#python diff_pipeline.py /path/to/projects
-import json
+# python -m src.diff_pipeline
+# python -m src.diff_pipeline output/ --diff-output output/diff/
+import argparse
 import re
-import sys
 from pathlib import Path
 
 from src.diff.version_diff import (
@@ -55,20 +55,34 @@ def count_functions(project):
 
 def main():
 
-    if len(sys.argv) != 2:
-        print(
-            "Usage: python diff_pipeline.py <input_folder>"
-        )
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Generate function diffs between project versions"
+    )
 
-    input_dir = Path(sys.argv[1])
+    parser.add_argument(
+        "input_folder",
+        type=str,
+        default="output/",
+        help="Folder containing the project version JSONL files"
+    )
+
+    parser.add_argument(
+        "--diff-output",
+        type=str,
+        default="output/diff/",
+        help="Output folder for diff files"
+    )
+
+    args = parser.parse_args()
+
+    input_dir = Path(args.input_folder)
+    output_dir = Path(args.diff_output)
 
     if not input_dir.is_dir():
         print(f"Not a directory: {input_dir}")
-        sys.exit(1)
+        return 1
 
-    output_dir = input_dir / "diff"
-    output_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     groups = get_version_groups(input_dir)
 
@@ -167,6 +181,8 @@ def main():
     )
     print(f"Output directory: {output_dir}")
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
