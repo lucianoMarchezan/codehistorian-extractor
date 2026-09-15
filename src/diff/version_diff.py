@@ -21,28 +21,19 @@ def function_key(function):
     return function["signature"]
 
 
-def collect_functions(project):
-    functions = {}
-
-    for source_file in project.get("sources", []):
-        for function in source_file.get("functions", []):
-            key = function_key(source_file, function)
-            functions[key] = (
-                source_file,
-                function,
-            )
-
-    return functions
+def collect_signatures(project):
+    return {
+        function_key(function)
+        for source_file in project.get("sources", [])
+        for function in source_file.get("functions", [])
+    }
 
 
 def create_diff(project_v1, project_v2):
-    functions_v1 = collect_functions(project_v1)
-    functions_v2 = collect_functions(project_v2)
+    signatures_v1 = collect_signatures(project_v1)
+    signatures_v2 = collect_signatures(project_v2)
 
-    added_keys = (
-        set(functions_v2)
-        - set(functions_v1)
-    )
+    added_signatures = signatures_v2 - signatures_v1
 
     diff_project = {
         "entry_id": project_v2["entry_id"],
@@ -52,24 +43,27 @@ def create_diff(project_v1, project_v2):
 
     sources_by_path = {}
 
-    for key in added_keys:
-        source_file, function = functions_v2[key]
+    for source_file in project_v2.get("sources", []):
+        for function in source_file.get("functions", []):
 
-        path = source_file["relative_path"]
+            if function_key(function) not in added_signatures:
+                continue
 
-        if path not in sources_by_path:
-            new_source_file = {
-                key: value
-                for key, value in source_file.items()
-                if key != "functions"
-            }
+            path = source_file["relative_path"]
 
-            new_source_file["functions"] = []
+            if path not in sources_by_path:
+                new_source_file = {
+                    key: value
+                    for key, value in source_file.items()
+                    if key != "functions"
+                }
 
-            sources_by_path[path] = new_source_file
-            diff_project["sources"].append(new_source_file)
+                new_source_file["functions"] = []
 
-        sources_by_path[path]["functions"].append(function)
+                sources_by_path[path] = new_source_file
+                diff_project["sources"].append(new_source_file)
+
+            sources_by_path[path]["functions"].append(function)
 
     return diff_project
 
@@ -120,15 +114,28 @@ def main():
     print(f"Project: {project_v2['project']['name']}")
     print(f"Language: {project_v2['project']['language']}")
 
-    functions_v1 = collect_functions(project_v1)
-    functions_v2 = collect_functions(project_v2)
+    signatures_v1 = collect_signatures(project_v1)
+    signatures_v2 = collect_signatures(project_v2)
 
-    print(f"Functions in V1: {len(functions_v1)}")
-    print(f"Functions in V2: {len(functions_v2)}")
+    matching = signatures_v1 & signatures_v2
+    added_signatures = signatures_v2 - signatures_v1
 
-    common = set(functions_v1) & set(functions_v2)
+    functions_v1 = sum(
+        len(source_file.get("functions", []))
+        for source_file in project_v1.get("sources", [])
+    )
 
-    print(f"Matching functions: {len(common)}")
+    functions_v2 = sum(
+        len(source_file.get("functions", []))
+        for source_file in project_v2.get("sources", [])
+    )
+
+    print(f"Functions in V1: {functions_v1}")
+    print(f"Functions in V2: {functions_v2}")
+    print(f"Unique signatures in V1: {len(signatures_v1)}")
+    print(f"Unique signatures in V2: {len(signatures_v2)}")
+    print(f"Matching signatures: {len(matching)}")
+    print(f"Added signatures: {len(added_signatures)}")
 
     diff_project = create_diff(
         project_v1,
