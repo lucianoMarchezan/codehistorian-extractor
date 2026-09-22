@@ -1,28 +1,101 @@
-# Function Extractor & Clone Detection Pipeline
+# Function Extractor & Similarity Evaluation Pipeline
 
-A multi-language source code analysis pipeline for extracting functions from software repositories and building datasets for clone detection, semantic similarity analysis, and code representation learning.
+A multi-language source code analysis pipeline for extracting functions from software repositories, generating function pairs, and evaluating code similarity (semantic similarity with Cosine Sim, and syntactic similarity with CodeBLEU).
 
-The system performs end-to-end processing:
+## Requirements
 
-1. Extracts functions from source code using AST-based parsers  
-2. Serializes structured project data into JSONL  
-3. Generates function-pair datasets per project  
-4. Evaluates clone similarity using SentenceTransformer models  
+```bash
+pip install -r requirements.txt
+```
 
---- 
+Depending on your Python environment, additional packages may be required.
+
+**Windows:** [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) are required by CodeBLEU. Install **Desktop development with C++**, including the Windows 10/11 SDK and C++ CMake tools.
+
+## How to Run
+
+The pipeline is executed through `src.main` and supports three modes:
+
+- `extract` — function extraction only
+- `pairs` — pair generation only
+- `all` — full pipeline
+
+### All projects
+
+Pass a directory containing multiple project repositories:
+
+```bash
+python -m src.main repos --mode all
+```
+
+For multiple projects, the pipeline:
+
+1. Extracts functions from each project into `output/<project>.jsonl`
+2. Runs the diff pipeline
+3. Generates function-pair CSV files from the diff (only added functions are considered)
+
+### Single project
+
+Run the full pipeline:
+
+```bash
+python -m src.main tests/calc-test --mode all
+```
+
+Run extraction only:
+
+```bash
+python -m src.main tests/calc-test --mode extract
+```
+
+Run pair generation:
+
+```bash
+python -m src.main tests/calc-test --mode pairs
+```
+
+### Clone detection
+
+After generating the pair files:
+
+```bash
+python -m src.run_detection --csv-folder output/
+```
+
+Multiple models can be specified:
+
+```bash
+python -m src.run_detection \
+    --csv-folder output/ \
+    --models microsoft/codebert-base Salesforce/codet5-base
+```
+
+### Options
+
+```text
+python -m src.main <project_path> [options]
+
+--output <path>        Output JSONL file for a single project
+--pairs-output <path>  Output directory/file for pairs
+--entry-id <id>       Process only a specific entry
+--mode <mode>         extract, pairs, or all
+```
 
 ## Supported Languages
 
 - Python
-- Java *
-- C#
+- Java 
 
----
+Language is automatically detected based on source-file extensions:
 
+| Extension | Language |
+|-----------|----------|
+| `.py` | Python |
+| `.java` | Java | 
 
-## Dataset Structure (JSONL)
+## Dataset Structure
 
-Each line corresponds to one project.
+The extraction pipeline produces JSONL data containing project, source-file, and function information.
 
 ```json
 {
@@ -57,126 +130,51 @@ Each line corresponds to one project.
 }
 ```
 
----
-
 ## Project Structure
 
-```
+```text
 src/
-│
-├── main.py                                      # Extraction pipeline entry point
-├── extractor_pipeline.py                        # Core extraction logic
-├── run_detection.py                             # Detection entry point
-├── config.py                                    # Configuration file
-│
+├── main.py
+├── extractor_pipeline.py
+├── run_detection.py
+├── config.py
 ├── utils/
 │   ├── helper_functions.py
 │   ├── create_function_pairs.py
-│   ├── models.py                                # Data structures
-│   └── transformer_test_loader.py               # Data loader
-│
+│   ├── models.py
+│   └── transformer_test_loader.py
 ├── parsers/
 │   ├── base.py
 │   └── python_parser.py
-│
 ├── normalization/
 │   └── serializer.py
-│
 ├── clone_detection/
 │   └── sentence_transformers_detector.py
-│
-├── embeddings/
-│   ├── codebert.py
-│   └── embeddings_calc.py
-│
+└── embeddings/
+    ├── codebert.py
+    └── embeddings_calc.py
+
 output/
 results/
 ```
----
 
-## Language Detection
+## Pipeline Overview
 
-The pipeline automatically detects the dominant language in a repository using file counts.
-
-Supported extensions:
-
-- .py → Python  
-- .java → Java  
-- .cs → C#  
-
---- 
-
-## Running the Pipeline
-
-The extractor/pair creation is done via a single entry point (`src.main`) and supports three execution modes:
-
-- `extract` → only function extraction (JSONL)
-- `pairs` → only pair generation (CSV)
-- `all` → run full pipeline (extract + pairs)
-
----
-
-## Running Examples
-
-### For all projects
-Replace ```repos``` with the folder containing all projects
-
-```bash
-python -m src.main repos --mode all
+```text
+Source repositories
+        │
+        ▼
+Function extraction
+        │
+        ▼
+Create a Project JSONL files
+        │
+        ▼
+If multiple versions of the project exist, extracts the diff (only newly added functions)
+        │
+        ▼
+Creates function-pair CSV files
+        │
+        ▼
+Semantic and syctactic similarity evaluation
 ```
-
-### 1. Full pipeline (recommended) for one project
-
-Extract + generate pairs:
-
-```bash
-python -m src.main tests/calc-test --mode all
-```
-
----
-
-### 2. Only extraction
-
-```bash
-python -m src.main tests/calc-test --mode extract
-```
-
-Output:
-- JSONL dataset in `--output`
-
----
-
-### 3. Only pair generation
-
-```bash
-python -m src.main tests/calc-test --mode pairs
-```
-
-Input:
-- existing JSONL file (`--output`)
-
-Output:
-- function pairs CSV files
-
----
-
-### 4. Clone Detection Evaluation
-
-This can be run after the pairs files are created
-
-Run embedding-based similarity analysis from the root folder:
-
-```bash
-python -m src.run_detection --csv-folder output/
-```
-
-Multiple models:
-
-```bash
-python -m src.run_detection --csv-folder output/ --models microsoft/codebert-base Salesforce/codet5-base
-```
-
-# Requirements
-
-* Run `pip install -r requirements.txt` to install required packages -- depending on your Python kernel additional packages may need to be installed
-* [MS C++ build tools](https://visualstudio.microsoft.com/pt-br/visual-cpp-build-tools/) -- make sure to install Desktop development with C++ (include Win 10/11 SDK and C++ CMake tools for Windows) -- this is **required by Codebleu**

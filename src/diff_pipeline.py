@@ -1,9 +1,7 @@
-# python -m src.diff_pipeline
-# python -m src.diff_pipeline output/ --diff-output output/diff/
-import argparse
 import re
 from pathlib import Path
 
+from src.config import DEFAULT_DIFF_OUTPUT, DEFAULT_OUTPUT_DIR
 from src.diff.version_diff import (
     load_project,
     create_diff,
@@ -11,7 +9,7 @@ from src.diff.version_diff import (
 )
 
 
-VERSION_PATTERN = re.compile(r"^(\d+)_(.+)$")
+VERSION_PATTERN = re.compile(r"^(\d+)_(.+)$") 
 
 def get_version_groups(input_dir):
     groups = {}
@@ -53,31 +51,10 @@ def count_functions(project):
     )
 
 
-def main():
-
-    parser = argparse.ArgumentParser(
-        description="Generate function diffs between project versions"
-    )
-
-    parser.add_argument(
-        "input_folder",
-        type=str,
-        nargs="?",
-        default="output/",
-        help="Folder containing the project version JSONL files"
-    )
-
-    parser.add_argument(
-        "--diff-output",
-        type=str,
-        default="output/diff/",
-        help="Output folder for diff files"
-    )
-
-    args = parser.parse_args()
-
-    input_dir = Path(args.input_folder)
-    output_dir = Path(args.diff_output)
+def run_diff_pipeline(input_folder=DEFAULT_OUTPUT_DIR, diff_output=DEFAULT_DIFF_OUTPUT):
+ 
+    input_dir = Path(input_folder)
+    output_dir = Path(diff_output)
 
     if not input_dir.is_dir():
         print(f"Not a directory: {input_dir}")
@@ -105,7 +82,7 @@ def main():
 
         if not all(v in versions for v in (1, 2, 3)):
             print(
-                f"  WARNING: expected 3 versions, "
+                f"  Skipping diff: expected versions 1, 2, and 3, "
                 f"found {sorted(versions)}"
             )
             continue
@@ -185,6 +162,3 @@ def main():
 
     return 0
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())

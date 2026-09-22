@@ -1,7 +1,8 @@
-from src.extractor_pipeline import ExtractionPipeline
-from src.utils.create_function_pairs import create_pairs_csv
+from src.extractor_pipeline import ExtractionPipeline 
 import argparse
 from pathlib import Path
+from diff_pipeline import run_diff_pipeline
+from diff.pairs_diff import create_pairs_from_diff
 from src.utils.helper_functions import print_banner
 from src.config import *
 
@@ -76,13 +77,7 @@ def _process_project(project_path, output_file, pairs_output, mode, entry_id=Non
         )
 
         extractor_pipeline.run(str(project_path))
-
-    if mode in ("pairs", "all"):
-        create_pairs_csv(
-            jsonl_file=output_file,
-            output_csv=pairs_output,
-            entry_id=entry_id
-        )
+ 
 
 
 def _process_repositories(root_folder, mode):
@@ -117,6 +112,11 @@ def _process_repositories(root_folder, mode):
             mode=mode
         )
 
+    if mode in ("extract", "all"):
+        run_diff_pipeline()
+        
+    if mode in ("pairs", "all"):
+        create_pairs_from_diff()
 
 if __name__ == "__main__":
     main()

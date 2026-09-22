@@ -1,6 +1,8 @@
 import torch
-
-DEFAULT_OUTPUT_JSONL = "output/projects.jsonl" 
+ 
+DEFAULT_OUTPUT_DIR = "output/" 
+DEFAULT_OUTPUT_JSONL = f"{DEFAULT_OUTPUT_DIR}projects.jsonl"
+DEFAULT_DIFF_OUTPUT = f"{DEFAULT_OUTPUT_DIR}/diff/"
 RESULTS_DIR = "results/"
 
 DEFAULT_MODE = "all"
