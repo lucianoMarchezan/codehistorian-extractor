@@ -70,6 +70,20 @@ python -m src.run_detection \
     --models microsoft/codebert-base Salesforce/codet5-base
 ```
 
+### Results
+
+Results are saved in:
+```text
+results/
+```
+
+Analysis is available in:
+```text
+analysis/similarity_analysis.ipynb
+analysis/qualitative_analysis.ipynb
+```
+
+
 ### Options
 
 ```text
@@ -176,5 +190,5 @@ If multiple versions of the project exist, extracts the diff (only newly added f
 Creates function-pair CSV files
         │
         ▼
-Semantic and syctactic similarity evaluation
+Semantic and Syntactic similarity evaluation
 ```
