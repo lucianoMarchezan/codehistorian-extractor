@@ -114,6 +114,7 @@ def main():
                 for item in ijson.items(f, "item"):
 
                     rows.append({
+                        "pair_id": item["pair_id"],
                         "file": file.name,
                         "file_index": prefix,
                         "generation_type": generation_type,
