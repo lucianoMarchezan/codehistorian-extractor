@@ -10,21 +10,34 @@ OUTPUT_FILE = Path("results/function_filtering_comparison.csv")
 
 
 def get_function_ids(file):
-    """Extract unique function IDs from a project JSON file."""
-
-    with open(file, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    """Extract unique function IDs from a JSONL project file."""
 
     function_ids = set()
 
-    for source in data.get("sources", []):
+    with open(file, "r", encoding="utf-8") as f:
 
-        for function in source.get("functions", []):
+        for line_number, line in enumerate(f, start=1):
 
-            function_id = function.get("function_id")
+            line = line.strip()
 
-            if function_id:
-                function_ids.add(function_id)
+            if not line:
+                continue
+
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(
+                    f"Invalid JSON in {file} at line {line_number}: {e}"
+                ) from e
+
+            for source in data.get("sources", []):
+
+                for function in source.get("functions", []):
+
+                    function_id = function.get("function_id")
+
+                    if function_id:
+                        function_ids.add(function_id)
 
     return function_ids
 
@@ -42,13 +55,13 @@ def main():
 
     filtered_files = {
         file.name: file
-        for file in FILTERED_DIR.iterdir()
+        for file in FILTERED_DIR.glob("*.jsonl")
         if file.is_file()
     }
 
     all_files = {
         file.name: file
-        for file in ALL_FUNCTIONS_DIR.iterdir()
+        for file in ALL_FUNCTIONS_DIR.glob("*.jsonl")
         if file.is_file()
     }
 
@@ -64,9 +77,9 @@ def main():
         set(all_files) - set(filtered_files)
     )
 
-    print(f"Filtered files:          {len(filtered_files)}")
-    print(f"All-functions files:     {len(all_files)}")
-    print(f"Matching files:          {len(common_files)}")
+    print(f"Filtered JSONL files:      {len(filtered_files)}")
+    print(f"All-functions JSONL files: {len(all_files)}")
+    print(f"Matching files:            {len(common_files)}")
     print()
 
     if only_filtered:
@@ -94,41 +107,48 @@ def main():
         print(f"[{i}/{len(common_files)}] {filename}")
 
         print("  Reading filtered file...")
-        filtered_functions = get_function_ids(filtered_file)
+        filtered_functions = get_function_ids(
+            filtered_file
+        )
 
         print("  Reading all-functions file...")
-        all_functions = get_function_ids(all_file)
+        all_functions = get_function_ids(
+            all_file
+        )
 
-        filtered_count = len(filtered_functions)
-        all_count = len(all_functions)
+        functions_before = len(all_functions)
+        functions_after = len(filtered_functions)
 
-        removed_functions = all_functions - filtered_functions
+        removed_functions = (
+            all_functions - filtered_functions
+        )
 
-        removed_count = len(removed_functions)
+        functions_removed = len(removed_functions)
 
-        if all_count > 0:
+        if functions_before > 0:
             removed_percentage = (
-                removed_count / all_count
+                functions_removed / functions_before
             ) * 100
         else:
             removed_percentage = 0.0
 
         rows.append({
             "file": filename,
-            "functions_before": all_count,
-            "functions_after": filtered_count,
-            "functions_removed": removed_count,
+            "functions_before": functions_before,
+            "functions_after": functions_after,
+            "functions_removed": functions_removed,
             "removed_percentage": removed_percentage,
         })
 
-        print(f"  functions before:  {all_count}")
-        print(f"  functions after:   {filtered_count}")
-        print(f"  functions removed: {removed_count}")
-        print(f"  removed:           {removed_percentage:.2f}%")
+        print(f"  functions before:  {functions_before}")
+        print(f"  functions after:   {functions_after}")
+        print(f"  functions removed: {functions_removed}")
+        print(f"  removed:            {removed_percentage:.2f}%")
 
     if not rows:
         raise RuntimeError(
-            "No matching files were found between the two directories."
+            "No matching JSONL files were found between "
+            "the two directories."
         )
 
     df = pd.DataFrame(rows)
