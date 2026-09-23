@@ -7,7 +7,7 @@ import pandas as pd
 # Paths
 
 RESULTS_DIR = Path("results")
-PARQUET_FILE = RESULTS_DIR / "results.parquet"
+PARQUET_FILE = RESULTS_DIR / "clone_detection_results.parquet"
 
 
 # Generation type
