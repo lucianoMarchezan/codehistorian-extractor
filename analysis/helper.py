@@ -60,15 +60,15 @@ def _get_paths(project_name):
 
     return {
         "results_json": (
-            Path("../../results")
+            Path("../results")
             / f"{project_name}_detailed_results.json"
         ),
         "pairs_file": (
-            Path("../../output")
+            Path("../output")
             / f"{project_name}_pairs.csv"
         ),
         "metadata_jsonl": (
-            Path("../../output")
+            Path("../output")
             / f"{project_name}.jsonl"
         ),
     }
@@ -223,7 +223,7 @@ def _get_pair_from_csv(
 
 def show_qualitative_pair(
     project_name,
-    sim_range=(0.0, 1.0),
+    sim_range=(-1.0, 1.0),
     codebleu_range=(0.0, 1.0),
     select_by="sim",
     model="microsoft/codebert-base-ft",
@@ -251,6 +251,7 @@ def show_qualitative_pair(
     results_df, pairs_df, metadata_jsonl = _load_data(
         project_name
     )
+    
 
     # Filter
 
