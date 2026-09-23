@@ -230,17 +230,10 @@ def show_qualitative_pair(
     language="python",
 ):
     """
-    Find and display a qualitative clone pair based on
+    Find and display a qualitative pair based on
     cosine similarity and CodeBLEU ranges.
 
-    Example
-    -------
-    show_qualitative_pair(
-        AG_PROJECT_NAME,
-        sim_range=(0, 0.3),
-        codebleu_range=(0.0, 0.35),
-        select_by="sim",
-    )
+    Functions whose names contain 'test' are excluded.
     """
 
     if select_by not in {"sim", "codebleu"}:
@@ -251,9 +244,28 @@ def show_qualitative_pair(
     results_df, pairs_df, metadata_jsonl = _load_data(
         project_name
     )
-    
 
-    # Filter
+    # Exclude pairs involving functions whose names contain "test"
+
+    test_function_ids = get_test_function_ids(
+        metadata_jsonl
+    )
+
+    results_df["pair_id"] = (
+        results_df["pair_id"]
+        .astype(str)
+        .str.strip()
+    )
+
+    pair_parts = results_df["pair_id"].str.split("::")
+
+    results_df = results_df[
+        ~pair_parts.str[0].isin(test_function_ids)
+        &
+        ~pair_parts.str[1].isin(test_function_ids)
+    ].copy()
+
+    # Filter by model, language, similarity, and CodeBLEU
 
     filtered = results_df[
         (results_df["model"] == model)
@@ -295,28 +307,18 @@ def show_qualitative_pair(
             f"Invalid pair_id format: {pair_id}"
         )
 
-    # Find pair in CSV
+    # Find pair in original CSV, allowing either orientation
 
-    pair = pairs_df[
-        (pairs_df["function_a_id"] == function_a_id)
-        &
-        (pairs_df["function_b_id"] == function_b_id)
-    ]
+    pair = _get_pair_from_csv(
+        pairs_df,
+        {function_a_id},
+        {function_b_id},
+    )
 
-    # Try reverse orientation
-    if pair.empty:
-        pair = pairs_df[
-            (pairs_df["function_a_id"] == function_b_id)
-            &
-            (pairs_df["function_b_id"] == function_a_id)
-        ]
-
-    if pair.empty:
+    if pair is None:
         raise ValueError(
             f"Pair not found in pairs CSV:\n{pair_id}"
         )
-
-    pair = pair.iloc[0]
 
     # Display
 
@@ -503,3 +505,29 @@ def show_qualitative_pair_by_id(
         model=model,
         language=language,
     )
+
+def get_test_function_ids(jsonl_file):
+    """Return function IDs whose name contains 'test'."""
+    
+    test_ids = set()
+
+    with open(jsonl_file, "r", encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+
+            entry = json.loads(line)
+
+            for source in entry.get("sources", []):
+                for function in source.get("functions", []):
+                    function_id = function.get("function_id")
+                    name = function.get("name")
+
+                    if (
+                        function_id is not None
+                        and name is not None
+                        and "test" in str(name).lower()
+                    ):
+                        test_ids.add(str(function_id).strip())
+
+    return test_ids
