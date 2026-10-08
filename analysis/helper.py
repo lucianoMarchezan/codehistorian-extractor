@@ -265,6 +265,42 @@ def show_qualitative_pair(
         ~pair_parts.str[1].isin(test_function_ids)
     ].copy()
 
+        # Require both functions to contain at least 4 lines of code
+
+    pairs_df["code_lines_a"] = pairs_df["code_a"].apply(
+        count_code_lines
+    )
+
+    pairs_df["code_lines_b"] = pairs_df["code_b"].apply(
+        count_code_lines
+    )
+
+    valid_pairs = pairs_df[
+        (pairs_df["code_lines_a"] >= 4)
+        &
+        (pairs_df["code_lines_b"] >= 4)
+    ][
+        ["function_a_id", "function_b_id"]
+    ]
+
+    valid_pair_ids = (
+        valid_pairs["function_a_id"].astype(str)
+        + "::"
+        + valid_pairs["function_b_id"].astype(str)
+    )
+
+    valid_pair_ids_reverse = (
+        valid_pairs["function_b_id"].astype(str)
+        + "::"
+        + valid_pairs["function_a_id"].astype(str)
+    )
+
+    results_df = results_df[
+        results_df["pair_id"].isin(valid_pair_ids)
+        |
+        results_df["pair_id"].isin(valid_pair_ids_reverse)
+    ].copy()
+
     # Filter by model, language, similarity, and CodeBLEU
 
     filtered = results_df[
@@ -531,3 +567,16 @@ def get_test_function_ids(jsonl_file):
                         test_ids.add(str(function_id).strip())
 
     return test_ids
+
+
+def count_code_lines(code):
+    """Count non-empty, non-comment lines of code."""
+
+    code = format_code(code)
+
+    return sum(
+        1
+        for line in code.splitlines()
+        if line.strip()
+        and not line.strip().startswith("#")
+    )
